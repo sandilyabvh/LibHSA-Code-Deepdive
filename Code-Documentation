@@ -1,78 +1,119 @@
-Tools to generate .mti, .hex, code_segments.h file =>
+**Planned code launch flow=\&gt;**
 
-	1. vsim2cmd.cpp
-		a. Reads a config file and an mti file and outputs a 'code_segments.h' file.
-		b. This requires a config file with specific imem and dmem sizes?
-		c. I tried to create one containing the instr and data mem location paths but it did not work.
-		d. 
-		e. Found the sample config file to be given as an argument to vsim2cmd.cpp. A mention of this can be found in the Makefile of the fpga_cmd_processor/sw/ location. Contents of this Makefile are=>
-			i. 
-		f. Steps to run this Makefile=>
-			i. cd ~/LibHSASWTesting/lib/fpga_cmd_processor/sw
-			ii. make all
-			iii. 
-			iv. Running this Make errors out at the line 10: 
-			
-			cd $(CORE_DIR) && $(MAKE)
-			
-			v. The Make file within core causes the error. Missing /opt/hsa/gcc-mips-installed/bin/mips64el-elf-as.
-			
-	
-	2. mti2hex.cpp
-		a. Takes an mti file as input and converts it to a hex format file.
-		b. g++ ./tools/hex_tools/src/mti2hex.cpp -o mti2hex.o
-		c. ./mti2hex.o ./flowfinding_mem.mti
-		d. Large file containing hex =>
-			i. 
-	3. Aql2mem.cpp
-		a. This code generates an mti file.
-		b. g++ ./tools/packet_tools/src/aql2mem.cpp -o aql2mem.o -I ./tools/packet_tools/include/
-		c. ./aql2mem.o "test" "default"
-		d. First argument is the name of the mti file to create, second argument is "default" for one packet or a number for more than one packet.
-		e. 
-		
-		f. 
+Host PC updates AQL packet-\&gt;send doorbell signal-\&gt;notify kernel agent-\&gt;
 
-LibHSA Processor components=>
-	1. Fpga_cmd_processor=>
-		a. Note this is the file where I have commented the 'code_segments.h'. Commenting this results in no error.
-		b. Steps=>
-			i. Invalidate all packet queues.
-			ii. Initialize cores. The number of cores is determined by the number of '_' found in the 'code_config.dat'
-			iii. Initializes a packet object with kernel arguments, grid sizes, completion signal values etc.
-			iv. Assigns it to the packet processor and sends an interrupt to the packet processor via a 'send_aql_interrupt'.
-			v. Wait for completion signal from the packet processor.
-			vi. Frees up the memory for dst_image. Kernel arguments in the end.
-		c. Also contains exception handler code.
-		d. The fpga_cmd_processor.h header file contains helper functions to send interrupts to cores and to create headers for HAS packets.
-		e. Compile:
-			i. g++ ./lib/fpga_cmd_processor/sw/core/src/fpga_cmd_processor.c -o fpga_cmd_processor.o -I ./lib/fpga_cmd_processor/sw/include/
-		f. Error:
-			i. Getting a segmentation fault upon running fpga_cmd_processor. This might be due to the fpga_cmd_processor/sw/Makefile failing due to missing /opt/hsa/gcc-mips-installed/bin/mips64el-elf-as
-			
-	2. Packet_processor=>
-		a. Runs an infinite loop that calls the following functions=>
-			i. Process_aql_packets()
-			ii. Process_dma_queue()
-			iii. Process_launch_queue()
-			iv. Process_dec_queue()
-		b. Process_aql_packets()
-			i. Handles processing of packets in the queue and handles the barrier sign.
-		c. Process_dma_queue()
-			i. Prioritize DMA writes. Basically this stops all interrupts, and then copies over the results (obtained from processing the packets) to the CPU memory (DMA_HOST_ADDR pointer being used).
-		d. Process_launch_queue()
-			i. Triggers work for a new free core if possible.
-			ii. Works with the ACCEL command processor? There is a mention of the BASE_ACCEL_ADDR.
-		e. Process_dec_queue()
-			i. This function sends the completion signal. Call for 'send_completion_interrupt' present here.
+GPU sends an ACK Signal-\&gt;Packet\_processor-\&gt;FCC-\&gt;DMA-\&gt;on board DRAM-\&gt;FCC-\&gt;DMA-\&gt;completion signal
 
-	3. Rom_accel_cmd_processor=>
-		a. Handles interrupts from both the data-mover and the packet processor.
-		b. A forever loop containing the following
-			i. Reading config (from where? Config.dat?)
-			ii. Updating the FPGA PE config w.r.t the task.
-			iii. Reset PE.
-			iv. Write config to datamover.
-			v. Signal interrupt to packet processor that the computation is complete.
-		
-		
+Host PC ACK-\&gt;Host PC uses these contents-\&gt;
+
+**Tools to generate .mti, .hex, code\_segments.h file =\&gt;**
+
+1. **vsim2cmd.cpp**
+
+  1. Reads a config file and an mti file and outputs a &#39;code\_segments.h&#39; file.
+  2. This requires a config file with specific imem and dmem sizes?
+  3. I tried to create one containing the instr and data mem location paths but it did not work.
+  4. ![](RackMultipart20220302-4-n1o4pj_html_ae9173988a41c2c9.png)
+  5. Found the sample config file to be given as an argument to vsim2cmd.cpp. A mention of this can be found in the Makefile of the fpga\_cmd\_processor/sw/ location. Contents of this Makefile are=\&gt;
+
+    1. ![](RackMultipart20220302-4-n1o4pj_html_1ab1b20511694258.png)
+  1. Steps to run this Makefile=\&gt;
+
+    1. cd ~/LibHSASWTesting/lib/fpga\_cmd\_processor/sw
+    2. make all
+    3. ![](RackMultipart20220302-4-n1o4pj_html_47a21ccc4ee45a78.png)
+    4. Running this Make errors out at the line 10:
+
+cd $(CORE\_DIR) &amp;&amp; $(MAKE)
+
+1. The Make file within core causes the error. Missing /opt/hsa/gcc-mips-installed/bin/mips64el-elf-as.
+
+
+
+1. **mti2hex.cpp**
+
+  1. Takes an mti file as input and converts it to a hex format file.
+  2. g++ ./tools/hex\_tools/src/mti2hex.cpp -o mti2hex.o
+  3. ./mti2hex.o ./flowfinding\_mem.mti
+  4. Large file containing hex =\&gt;
+
+    1. ![](RackMultipart20220302-4-n1o4pj_html_1e00fa19fdd6ee75.png)
+
+1. **Aql2mem.cpp**
+
+  1. This code generates an mti file.
+  2. g++ ./tools/packet\_tools/src/aql2mem.cpp -o aql2mem.o -I ./tools/packet\_tools/include/
+  3. ./aql2mem.o &quot;test&quot; &quot;default&quot;
+  4. First argument is the name of the mti file to create, second argument is &quot;default&quot; for one packet or a number for more than one packet.
+  5. ![](RackMultipart20220302-4-n1o4pj_html_cca4b180201749a.png)
+
+1. ![](RackMultipart20220302-4-n1o4pj_html_ebf4cec574d11a3b.png)
+
+**LibHSA Processor components=\&gt;**
+
+1. Fpga\_cmd\_processor=\&gt;
+
+  1. Note this is the file where I have commented the &#39;code\_segments.h&#39;. Commenting this results in no error.
+  2. Steps=\&gt;
+
+    1. Invalidate all packet queues.
+    2. Initialize cores. The number of cores is determined by the number of &#39;\_&#39; found in the &#39;code\_config.dat&#39;
+    3. Initializes a packet object with kernel arguments, grid sizes, completion signal values etc.
+    4. Assigns it to the packet processor and sends an interrupt to the packet processor via a &#39;send\_aql\_interrupt&#39;.
+    5. Wait for completion signal from the packet processor.
+    6. Frees up the memory for dst\_image. Kernel arguments in the end.
+  1. Also contains exception handler code.
+  2. The fpga\_cmd\_processor.h header file contains helper functions to send interrupts to cores and to create headers for HAS packets.
+  3. Compile:
+
+    1. g++ ./lib/fpga\_cmd\_processor/sw/core/src/fpga\_cmd\_processor.c -o fpga\_cmd\_processor.o -I ./lib/fpga\_cmd\_processor/sw/include/
+  1. Error:
+
+    1. Getting a segmentation fault upon running fpga\_cmd\_processor. This might be due to the fpga\_cmd\_processor/sw/Makefile failing due to missing /opt/hsa/gcc-mips-installed/bin/mips64el-elf-as
+
+1. Packet\_processor=\&gt;
+
+  1. Runs an infinite loop that calls the following functions=\&gt;
+
+    1. Process\_aql\_packets()
+    2. Process\_dma\_queue()
+    3. Process\_launch\_queue()
+    4. Process\_dec\_queue()
+  1. Process\_aql\_packets()
+
+    1. Handles processing of packets in the queue and handles the barrier sign.
+  1. Process\_dma\_queue()
+
+    1. Prioritize DMA writes. Basically this stops all interrupts, and then copies over the results (obtained from processing the packets) to the CPU memory (DMA\_HOST\_ADDR pointer being used).
+  1. Process\_launch\_queue()
+
+    1. Triggers work for a new free core if possible.
+    2. Works with the ACCEL command processor? There is a mention of the BASE\_ACCEL\_ADDR.
+  1. Process\_dec\_queue()
+
+    1. This function sends the completion signal. Call for &#39;send\_completion\_interrupt&#39; present here.
+
+1. Rom\_accel\_cmd\_processor=\&gt;
+
+  1. Handles interrupts from both the data-mover and the packet processor.
+  2. A forever loop containing the following
+
+    1. Reading config (from where? Config.dat?)
+    2. Updating the FPGA PE config w.r.t the task.
+    3. Reset PE.
+    4. Write config to datamover.
+    5. Signal interrupt to packet processor that the computation is complete.
+
+
+
+**Solution: This is where code fails=\&gt;**
+
+# build startup object code
+
+$(LD\_DIR)startup.o:
+
+    $(AS) $(ASFLAGS) $(SRC\_DIR)startup.s -o $@;
+
+Need to make changes to global config
+
+![](RackMultipart20220302-4-n1o4pj_html_aaf3d6d6181b285b.png)
